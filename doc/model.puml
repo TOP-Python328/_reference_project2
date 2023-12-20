@@ -1,0 +1,80 @@
+@startuml
+
+' !theme monokai_npp from ..\.styles
+scale 2
+
+
+abstract dict
+
+
+class Creature {
+    +kind: Kind
+    +name: <i>str</i>
+    +age: <i>int</i>
+    +params: <i>dict</i> [<i>Type</i>, Parameter]
+    +update() → <i>None</i>
+}
+
+
+class Kind {
+    <font size=11><font "Fira Mono">{(int, int): MaturePhase}</font>
+    ..
+    +name: <i>str</i>
+    +image: <i>Path</i>
+    ..
+    __init__(<i>Iterable</i> [MaturePhase])
+}
+
+
+class MaturePhase {
+    +days: <i>int</i>
+    +params: <i>dict</i> [<i>Type</i>, Parameter]
+    +coeffs: <i>dict</i> [<i>Type</i>, <i>dict</i> [<i>Type</i>, <i>float</i> ]
+}
+
+
+abstract Parameter << observer >> {
+    +{static}name: <i>str</i>
+    #value: <i>float</i>
+    +min: <i>float</i>
+    +max: <i>float</i>
+    +{abstract}update() → <i>None</i>
+}
+
+class Health {
+    +{static}name: <i>str</i>
+    +update() → <i>None</i>
+}
+class Satiety {
+    +{static}name: <i>str</i>
+    +update() → <i>None</i>
+}
+
+
+abstract DictOfRanges {
+    {field}<font size=11><font "IBM Plex Mono">{(int, int): Any}</font>
+    __getitem__()
+}
+
+
+hide abstract empty members
+
+
+
+dict <|-- DictOfRanges
+
+DictOfRanges <|-- Kind
+
+Creature o-left- Kind
+Creature o-- Parameter
+
+Kind *-- MaturePhase
+
+MaturePhase o-right- Parameter
+
+Parameter <|-- Health
+Parameter <|-- Satiety
+
+Parameter .left.> MaturePhase 
+
+@enduml
