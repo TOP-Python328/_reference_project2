@@ -1,6 +1,6 @@
 @startuml
 
-' !theme monokai_npp from ..\.styles
+!theme monokai_npp from ..\.styles
 scale 2
 
 
@@ -11,33 +11,55 @@ class Creature {
     +kind: Kind
     +name: <i>str</i>
     +age: <i>int</i>
-    +params: <i>dict</i> [<i>Type</i>, Parameter]
+    +params: <i>dict</i> [<i>Type</i>, CreatureParameter]
     +update() → <i>None</i>
 }
 
 
 class Kind {
-    <font size=11><font "Fira Mono">{(int, int): MaturePhase}</font>
-    ..
+    {field}<font size=12><font "Brass Mono"> (int, int): MaturePhase </font>
+    --
     +name: <i>str</i>
     +image: <i>Path</i>
-    ..
+    --
     __init__(<i>Iterable</i> [MaturePhase])
 }
 
 
 class MaturePhase {
     +days: <i>int</i>
-    +params: <i>dict</i> [<i>Type</i>, Parameter]
+    +params: <i>dict</i> [<i>Type</i>, KindParameter]
     +coeffs: <i>dict</i> [<i>Type</i>, <i>dict</i> [<i>Type</i>, <i>float</i> ]
 }
 
 
-abstract Parameter << observer >> {
-    +{static}name: <i>str</i>
-    #value: <i>float</i>
+class KindParameter << dataclass >> {
+    +name: <i>str</i>
+    +initial: <i>float</i>
     +min: <i>float</i>
     +max: <i>float</i>
+}
+
+
+enum Parameters << functional >> {
+    Health
+    Satiety
+    ...
+}
+
+
+abstract CreatureParameter << observer >> {
+    +{abstract}{static}name: <i>str</i>
+    #value: <i>float</i>
+    -min: <i>float</i>
+    -max: <i>float</i>
+    +origin: Creature
+    ..<font size=12><i> getters </i></font>..
+    +value → <i>float</i>
+    +range → <i>tuple</i> [<i>float</i>, <i>float</i> ]
+    ..<font size=12><i> setters </i></font>..
+    +value(<i>float</i> )
+    ..<font size=12><i> methods </i></font>..
     +{abstract}update() → <i>None</i>
 }
 
@@ -52,13 +74,14 @@ class Satiety {
 
 
 abstract DictOfRanges {
-    {field}<font size=11><font "IBM Plex Mono">{(int, int): Any}</font>
+    {field}<font size=12><font "Brass Mono"> (int, int): Any </font>
     __getitem__()
 }
 
 
 hide abstract empty members
-
+hide enum empty members
+hide KindParameter empty members
 
 
 dict <|-- DictOfRanges
@@ -66,15 +89,16 @@ dict <|-- DictOfRanges
 DictOfRanges <|-- Kind
 
 Creature o-left- Kind
-Creature o-- Parameter
+Creature o-right-o CreatureParameter
 
 Kind *-- MaturePhase
 
-MaturePhase o-right- Parameter
+MaturePhase *-- KindParameter
 
-Parameter <|-- Health
-Parameter <|-- Satiety
+CreatureParameter <|-- Health
+CreatureParameter <|-- Satiety
 
-Parameter .left.> MaturePhase 
+CreatureParameter <.up. Parameters : "собирает имена \n производных классов"
+
 
 @enduml
