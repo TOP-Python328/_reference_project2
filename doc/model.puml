@@ -1,18 +1,22 @@
 @startuml
 
-!theme monokai_npp from ..\.styles
+' !theme monokai_npp from ..\.styles
 scale 2
 
 
-abstract dict
-
-
-class Creature {
+class Creature << originator >> {
     +kind: Kind
     +name: <i>str</i>
-    +age: <i>int</i>
+    #age: <i>int</i>
     +params: <i>dict</i> [<i>Type</i>, CreatureParameter]
+    +history: History[State]
+    ..<font size=12><i> getters </i></font>..
+    +age → <i>int</i>
+    ..<font size=12><i> setters </i></font>..
+    +age(<i>int</i> )
+    ..<font size=12><i> methods </i></font>..
     +update() → <i>None</i>
+    -grow_up() → <i>None</i>
 }
 
 
@@ -29,7 +33,9 @@ class Kind {
 class MaturePhase {
     +days: <i>int</i>
     +params: <i>dict</i> [<i>Type</i>, KindParameter]
-    +coeffs: <i>dict</i> [<i>Type</i>, <i>dict</i> [<i>Type</i>, <i>float</i> ]
+    ' +coeffs: <i>dict</i> [<i>Type</i>, <i>dict</i> [<i>Type</i>, <i>float</i> ]
+    +player_actions
+    +creature_actions
 }
 
 
@@ -53,7 +59,7 @@ abstract CreatureParameter << observer >> {
     #value: <i>float</i>
     -min: <i>float</i>
     -max: <i>float</i>
-    +origin: Creature
+    +creature: Creature
     ..<font size=12><i> getters </i></font>..
     +value → <i>float</i>
     +range → <i>tuple</i> [<i>float</i>, <i>float</i> ]
@@ -73,32 +79,78 @@ class Satiety {
 }
 
 
+' abstract Action {
+    ' +{static}name
+' }
+
+
+abstract Interaction {
+    +{static}{abstract}name: <i>str</i>
+    +{abstract}do()
+}
+
+
+class Feed {
+    +amount: <i>float</i>
+    +do()
+    
+}
+
+
+class History << caretaker >> {
+    {field}<font size=12><font "Brass Mono"> State </font>
+    +get_param() → <i>list</i> [<i>float</i> ]
+}
+
+
+class State << memento >> {
+    +age: <i>int</i>
+    +param1: <i>float</i>
+    +param2: <i>float</i>
+    ...
+}
+
+
 abstract DictOfRanges {
     {field}<font size=12><font "Brass Mono"> (int, int): Any </font>
     __getitem__()
+    +get_range() → <i>tuple</i> [<i>int</i>, <i>int</i> ]
 }
+abstract list
+abstract dict
 
 
 hide abstract empty members
 hide enum empty members
 hide KindParameter empty members
+hide MaturePhase empty members
+hide State empty members
 
 
+list <|-- History
 dict <|-- DictOfRanges
 
 DictOfRanges <|-- Kind
 
 Creature o-left- Kind
 Creature o-right-o CreatureParameter
+Creature o-up- History
+Creature o-[hidden]- Interaction
 
 Kind *-- MaturePhase
 
 MaturePhase *-- KindParameter
+' MaturePhase o-left- Action
+MaturePhase o-right- Interaction
 
 CreatureParameter <|-- Health
 CreatureParameter <|-- Satiety
 
 CreatureParameter <.up. Parameters : "собирает имена \n производных классов"
+
+History *-right- State
+
+Interaction <|-- Feed
 
 
 @enduml
