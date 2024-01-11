@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
+from pathlib import Path
+from random import choice, sample
 from typing import Type
 
 
@@ -40,6 +43,9 @@ class KindParameter:
     initial: float
     min: float
     max: float
+    
+    def __hash__(self):
+        return hash(self.name)
 
 
 class CreatureParameter(ABC):
@@ -109,14 +115,85 @@ Parameters = Enum(
 )
 
 
+class Action(ABC):
+    name: str
+    
+    def __init__(self, creature: 'Creature' = None):
+        self.creature = creature
+    
+    def __hash__(self):
+        return hash(self.name)
+    
+    @abstractmethod
+    def do(self) -> None:
+        pass
+
+
+class PlayerAction(Action):
+    image: Path
+
+
+class Feed(PlayerAction):
+    name = 'покормить'
+    image = Path()
+    
+    def __init__(
+            self, 
+            amount: float,
+            creature: 'Creature' = None, 
+    ):
+        self.amount = amount
+        super().__init__(creature)
+    
+    def do(self) -> None:
+        self.creature.params[Satiety].value += self.amount
+
+
+class TeaseHead(PlayerAction):
+    name = 'почесать голову'
+    image = Path()
+    
+    def do(self) -> None:
+        ...
+
+
+class CreatureAction(Action):
+    def __init__(
+            self,
+            rand_coeff: float,
+            creature: 'Creature' = None, 
+    ):
+        self.rand_coeff = rand_coeff
+        super().__init__(creature)
+
+
+class ChaseTail(CreatureAction):
+    name = 'гоняться за своим хвостом'
+    
+    def do(self) -> None:
+        print('бегает за своим хвостом')
+
+
+class NoAction(Action):
+    name = 'бездействие'
+    
+    def do(self) -> None:
+        print('бездействует')
+
+
+
 class MaturePhase:
     def __init__(
             self, 
             days: int,
-            *parameters: KindParameter
+            *parameters: KindParameter,
+            player_actions: Iterable[PlayerAction],
+            creature_actions: Iterable[CreatureAction],
     ):
         self.days = days
-        self.params = parameters
+        self.params = set(parameters)
+        self.player_actions = set(player_actions)
+        self.creature_actions = set(creature_actions)
 
 
 class Kind(DictOfRanges):
@@ -170,6 +247,9 @@ class Creature:
                 right=param.max,
                 creature=self,
             )
+        self.player_actions: set[PlayerAction]
+        self.creature_actions: set[CreatureAction]
+        self.__set_actions()
         self.history: History = History()
     
     def __repr__(self):
@@ -179,6 +259,16 @@ class Creature:
             for p in self.params.values()
         )
         return f'{title}\n{params}'
+    
+    def __set_actions(self) -> None:
+        self.player_actions = {
+            action.__class__(**{**action.__dict__, 'creature': self})
+            for action in self.kind[self.age].player_actions
+        }
+        self.creature_actions = {
+            action.__class__(**{**action.__dict__, 'creature': self})
+            for action in self.kind[self.age].creature_actions
+        }
     
     def update(self) -> None:
         for param in self.params.values():
@@ -207,6 +297,13 @@ class Creature:
                 right=param.max,
                 creature=self,
             )
+        self.__set_actions()
+    
+    def random_action(self) -> None:
+        action = choice(tuple(self.creature_actions))
+        no_action = NoAction()
+        prob = int(action.rand_coeff * 100)
+        choice(sample([action, no_action], counts=[prob, 100-prob], k=100)).do()
     
     def save(self) -> State:
         state = State(self.age)
@@ -222,18 +319,40 @@ dog = Kind(
         5,
         KindParameter(Health.__name__, 10, 0, 25),
         KindParameter(Satiety.__name__, 2, 0, 15),
+        player_actions=[
+            Feed(10),
+        ],
+        creature_actions=[
+            ChaseTail(0.9),
+        ]
     ),
     MaturePhase(
         50,
         KindParameter(Health.__name__, 0, 0, 60),
         KindParameter(Satiety.__name__, 0, 0, 40),
+        player_actions=[
+            Feed(25),
+            TeaseHead(),
+        ],
+        creature_actions=[
+            ChaseTail(0.35),
+        ]
     ),
     MaturePhase(
         20,
         KindParameter(Health.__name__, 0, 0, 45),
         KindParameter(Satiety.__name__, 0, 0, 25),
+        player_actions=[
+            Feed(20),
+            TeaseHead(),
+        ],
+        creature_actions=[],
     ),
 )
 
 jack = Creature(dog, 'Джек')
 
+buttons = [
+    pa.do
+    for pa in jack.player_actions
+]
