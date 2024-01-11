@@ -1,6 +1,6 @@
 @startuml
 
-' !theme monokai_npp from ..\.styles
+!theme monokai_npp from ..\.styles
 scale 2
 
 
@@ -9,14 +9,19 @@ class Creature << originator >> {
     +name: <i>str</i>
     #age: <i>int</i>
     +params: <i>dict</i> [<i>Type</i>, CreatureParameter]
+    +player_actions: <i>set</i> [PlayerAction]
+    +creature_actions: <i>set</i> [CreatureAction]
     +history: History[State]
     ..<font size=12><i> getters </i></font>..
     +age → <i>int</i>
     ..<font size=12><i> setters </i></font>..
     +age(<i>int</i> )
     ..<font size=12><i> methods </i></font>..
+    #set_actions() → <i>None</i>
     +update() → <i>None</i>
     -grow_up() → <i>None</i>
+    +random_action() → <i>None</i>
+    +save() → State
 }
 
 
@@ -32,10 +37,10 @@ class Kind {
 
 class MaturePhase {
     +days: <i>int</i>
-    +params: <i>dict</i> [<i>Type</i>, KindParameter]
+    +params: <i>set</i> [KindParameter]
     ' +coeffs: <i>dict</i> [<i>Type</i>, <i>dict</i> [<i>Type</i>, <i>float</i> ]
-    +player_actions
-    +creature_actions
+    +player_actions: <i>set</i> [PlayerAction]
+    +creature_actions: <i>set</i> [CreatureAction]
 }
 
 
@@ -84,16 +89,44 @@ class Satiety {
 ' }
 
 
-abstract Interaction {
+abstract Action {
     +{static}{abstract}name: <i>str</i>
+    +{abstract}creature: Creature = <i>None</i> 
     +{abstract}do()
 }
 
 
+abstract PlayerAction {
+    +{static}{abstract}image: <i>Path</i>
+}
+
 class Feed {
+    +{static}name: <i>str</i>
+    +{static}image: <i>Path</i>
     +amount: <i>float</i>
     +do()
-    
+}
+
+class TeaseHead {
+    +{static}name: <i>str</i>
+    +{static}image: <i>Path</i>
+    +do()
+}
+
+
+abstract CreatureAction {
+    +rand_coeff: <i>float</i>
+}
+
+class ChaseTail {
+    +{static}name: <i>str</i>
+    +do()
+}
+
+
+class NoAction {
+    +{static}name = 'бездействие'
+    +do()
 }
 
 
@@ -101,7 +134,6 @@ class History << caretaker >> {
     {field}<font size=12><font "Brass Mono"> State </font>
     +get_param() → <i>list</i> [<i>float</i> ]
 }
-
 
 class State << memento >> {
     +age: <i>int</i>
@@ -127,30 +159,71 @@ hide MaturePhase empty members
 hide State empty members
 
 
-list <|-- History
-dict <|-- DictOfRanges
+' list <|-- History
+' dict <|-- DictOfRanges
 
-DictOfRanges <|-- Kind
+' DictOfRanges <|-- Kind
 
-Creature o-left- Kind
-Creature o-right-o CreatureParameter
-Creature o-up- History
-Creature o-[hidden]- Interaction
+' Creature o-left- Kind
+' Creature o-right-o CreatureParameter
+' Creature o--o Action
+' Creature o-up- History
 
-Kind *-- MaturePhase
 
-MaturePhase *-- KindParameter
-' MaturePhase o-left- Action
-MaturePhase o-right- Interaction
+' Kind *-- MaturePhase
+
+' MaturePhase *-- KindParameter
+' MaturePhase o-right- Action
+
+' CreatureParameter <|-- Health
+' CreatureParameter <|-- Satiety
+
+' CreatureParameter <.up. Parameters : "собирает имена \n производных классов"
+
+' History *-right- State
+
+' Action <|-- PlayerAction
+' Action <|-- CreatureAction
+' Action <|-- NoAction
+
+' PlayerAction <|-- Feed
+' PlayerAction <|-- TeaseHead
+
+' CreatureAction <|-- ChaseTail
+
+
+left to right direction
+
+list <|-right- History
+dict <|-right- DictOfRanges
+
+DictOfRanges <|-right- Kind
+
+Creature o-up- Kind
+Creature o--o CreatureParameter
+Creature o-right-o Action
+Creature o-left- History
+
+
+Kind *-right- MaturePhase
+
+MaturePhase *-right- KindParameter
+MaturePhase o-- Action
 
 CreatureParameter <|-- Health
 CreatureParameter <|-- Satiety
 
-CreatureParameter <.up. Parameters : "собирает имена \n производных классов"
+CreatureParameter <.left. Parameters : "собирает имена \n производных классов"
 
-History *-right- State
+History *-up- State
 
-Interaction <|-- Feed
+Action <|-- PlayerAction
+Action <|-- CreatureAction
+Action <|-- NoAction
 
+PlayerAction <|-- Feed
+PlayerAction <|-- TeaseHead
+
+CreatureAction <|-- ChaseTail
 
 @enduml
