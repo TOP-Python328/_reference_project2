@@ -5,7 +5,14 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 from random import choice, sample
+from sys import path
 from typing import Type
+
+
+ROOT_DIR = Path(path[0]).parent.parent
+DATA_DIR = ROOT_DIR / 'data'
+
+
 
 
 class DictOfRanges(dict):
@@ -125,17 +132,18 @@ class Action(ABC):
         return hash(self.name)
     
     @abstractmethod
-    def do(self) -> None:
+    def do(self) -> str:
         pass
 
 
 class PlayerAction(Action):
     image: Path
+    state = 'normal'
 
 
 class Feed(PlayerAction):
     name = 'покормить'
-    image = Path()
+    image = DATA_DIR / 'images/btn1.png'
     
     def __init__(
             self, 
@@ -145,16 +153,17 @@ class Feed(PlayerAction):
         self.amount = amount
         super().__init__(creature)
     
-    def do(self) -> None:
+    def do(self) -> str:
         self.creature.params[Satiety].value += self.amount
+        return f'вы покормили питомца на {self.amount} ед.'
 
 
 class TeaseHead(PlayerAction):
     name = 'почесать голову'
-    image = Path()
+    image = DATA_DIR / 'images/btn3.png'
     
-    def do(self) -> None:
-        ...
+    def do(self) -> str:
+        return 'вы почесали голову питомцу'
 
 
 class CreatureAction(Action):
@@ -174,8 +183,10 @@ class ChaseTail(CreatureAction):
         print('бегает за своим хвостом')
 
 
-class NoAction(Action):
+class NoAction(PlayerAction):
     name = 'бездействие'
+    image = DATA_DIR / 'images/no_action.png'
+    state = 'disabled'
     
     def do(self) -> None:
         print('бездействует')
@@ -200,9 +211,11 @@ class Kind(DictOfRanges):
     def __init__(
             self, 
             name: str, 
+            image: Path,
             *mature_phases: MaturePhase
     ):
         self.name = name
+        self.image = image
         
         phases = {}
         left = 0
@@ -211,6 +224,8 @@ class Kind(DictOfRanges):
             phases[key] = phase
             left = left + phase.days
         super().__init__(phases)
+        
+        self.max_age = left - 1
 
 
 @dataclass
@@ -253,12 +268,13 @@ class Creature:
         self.history: History = History()
     
     def __repr__(self):
-        title = f'({self.kind.name}) {self.name}: {self.age} ИД'
+        # title = f'({self.kind.name}) {self.name}: {self.age} ИД'
         params = '\n'.join(
             f'{p.name}: {p.value:.1f}' 
             for p in self.params.values()
         )
-        return f'{title}\n{params}'
+        # return f'{title}\n{params}'
+        return f'{params}'
     
     def __set_actions(self) -> None:
         self.player_actions = {
@@ -315,6 +331,7 @@ class Creature:
 
 dog = Kind(
     'собака',
+    DATA_DIR / 'images/dog.png',
     MaturePhase(
         5,
         KindParameter(Health.__name__, 10, 0, 25),

@@ -29,6 +29,7 @@ class Kind {
     {field}<font size=12><font "Brass Mono"> (int, int): MaturePhase </font>
     --
     +name: <i>str</i>
+    +max_age: <i>int</i>
     +image: <i>Path</i>
     --
     __init__(<i>Iterable</i> [MaturePhase])
